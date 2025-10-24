@@ -33,7 +33,7 @@ public class ProducerDemo {
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
         // 4. 전송 정보 생성
-        // kafka-topics.sh --bootstrap-server localhost:9092 --topic demo_java --create  --> CLI 를 통한 토픽 생성
+        // kafka-topics.sh --bootstrap-server localhost:9092 --topic demo_java --create --partitions 3  --> CLI 를 통한 토픽 생성
         ProducerRecord<String, String> producerRecord = new ProducerRecord<>("demo_java", "hello world");
         
         // 5. 데이터 전송

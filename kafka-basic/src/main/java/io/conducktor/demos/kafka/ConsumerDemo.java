@@ -24,7 +24,7 @@ public class ConsumerDemo {
         String groupId = "my-java-application";
         String topic = "demo_java";
 
-        // 1. Producer Properties 생성
+        // 1. Consumer Properties 생성
         Properties properties = new Properties();
         // localhost
         properties.setProperty("bootstrap.servers", "localhost:9092");
