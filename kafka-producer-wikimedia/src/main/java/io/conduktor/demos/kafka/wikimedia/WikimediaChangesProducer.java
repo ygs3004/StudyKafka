@@ -27,6 +27,11 @@ public class WikimediaChangesProducer {
         properties.setProperty(ProducerConfig.ACKS_CONFIG, "all"); // -1, replica의 데이터 복제처리 안정성
         properties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
 
+        // 처리량 관련 설정
+        properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20"); // batch size 에 도달하지 않았을시 처리하는 시간
+        properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32 * 1024)); // bach size
+        properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy"); // 압축방식
+
         // Producer 생성
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
