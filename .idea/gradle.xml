@@ -24,6 +24,15 @@
         </option>
       </GradleProjectSettings>
       <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/kafka-consumer-opensearch" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/kafka-consumer-opensearch" />
+            <option value="$PROJECT_DIR$/kafka-consumer-opensearch/kafka-consumer-opensearch" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
         <option name="externalProjectPath" value="$PROJECT_DIR$/kafka-producer-wikimedia" />
         <option name="modules">
           <set>
