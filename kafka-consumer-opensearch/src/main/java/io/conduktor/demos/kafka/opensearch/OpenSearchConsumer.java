@@ -6,29 +6,43 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.client.indices.GetIndexRequest;
+import org.opensearch.common.xcontent.XContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Properties;
 
 public class OpenSearchConsumer {
     public static void main(String[] args) throws IOException {
-        // OpenSearch Client 생성
+
         Logger log = LoggerFactory.getLogger(OpenSearchConsumer.class.getSimpleName());
 
         // OpenSearchClient 생성
         RestHighLevelClient openSearchClient = createOpenSearchClient();
 
+        // KafkaConsumer 생성
+        KafkaConsumer<String, String> consumer = createKafkaConsumer();
+
         // index 미존재시 생성
         String indexName = "wikimedia";
         CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName);
-        try(openSearchClient) {
+        try(openSearchClient; consumer) {
 
             boolean indexExists = openSearchClient.indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
             if (!indexExists) {
@@ -37,10 +51,31 @@ public class OpenSearchConsumer {
             }else{
                 log.info("index가 생성 되어있습니다.");
             }
+
+            // subscribe
+            consumer.subscribe(Collections.singleton("wikimedia.recentchange"));
+
+            while (true) {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(3000));
+                int recordCount = records.count();
+                log.info("Received: " + recordCount + " record(s)");
+
+                for(ConsumerRecord<String, String> record : records) {
+
+                    try{
+                        // send the record into OpenSearch
+                        IndexRequest indexRequest = new IndexRequest(indexName).source(record.value(), XContentType.JSON);
+                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+                        log.info(response.getId());
+                    }catch (Exception e){
+                    }
+
+                }
+            }
         }
     }
 
-    public static RestHighLevelClient createOpenSearchClient() {
+    private static RestHighLevelClient createOpenSearchClient() {
         String connString = "http://localhost:9200";
 
         RestHighLevelClient restHighLevelClient;
@@ -62,6 +97,23 @@ public class OpenSearchConsumer {
         }
 
         return restHighLevelClient;
+    }
+
+    private static KafkaConsumer<String, String> createKafkaConsumer(){
+
+        String bootstrapServer = "localhost:9092";
+        String groupId = "consumer-opensearch-demo";
+
+        // Consumer Properties 생성
+        Properties properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest"); // none / earliest / latest
+
+        // Consumer 생성
+        return new KafkaConsumer<>(properties);
     }
 
 }
