@@ -1,5 +1,6 @@
 package io.conduktor.demos.kafka.opensearch;
 
+import com.google.gson.JsonParser;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -63,8 +64,14 @@ public class OpenSearchConsumer {
                 for(ConsumerRecord<String, String> record : records) {
 
                     try{
+                        // 멱등성을 위한 ID
+                        // String id = record.topic() + "-" + record.partition() + "-" + record.offset();
+                        String id = extractId(record.value());
+
                         // send the record into OpenSearch
-                        IndexRequest indexRequest = new IndexRequest(indexName).source(record.value(), XContentType.JSON);
+                        IndexRequest indexRequest = new IndexRequest(indexName)
+                                .source(record.value(), XContentType.JSON)
+                                .id(id);
                         IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
                         log.info(response.getId());
                     }catch (Exception e){
@@ -73,6 +80,16 @@ public class OpenSearchConsumer {
                 }
             }
         }
+    }
+
+    private static String extractId(String json){
+        // gson library
+        return JsonParser.parseString(json)
+                .getAsJsonObject()
+                .get("meta")
+                .getAsJsonObject()
+                .get("id")
+                .getAsString();
     }
 
     private static RestHighLevelClient createOpenSearchClient() {
