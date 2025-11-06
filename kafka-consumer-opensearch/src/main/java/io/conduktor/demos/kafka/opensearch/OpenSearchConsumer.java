@@ -76,8 +76,11 @@ public class OpenSearchConsumer {
                         log.info(response.getId());
                     }catch (Exception e){
                     }
-
                 }
+
+                // batch 단위 커밋
+                consumer.commitSync();
+                log.info("Batch Offset Commited!!!");
             }
         }
     }
@@ -128,6 +131,8 @@ public class OpenSearchConsumer {
         properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest"); // none / earliest / latest
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+
 
         // Consumer 생성
         return new KafkaConsumer<>(properties);
